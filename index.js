@@ -5,7 +5,8 @@ const replaceCssContents = require('./replace-css-contents');
 module.exports = class IconMaker {
   constructor({
     files = ['ttf', 'woff', 'eot', 'svg'],
-    fontFamily = 'default'
+    fontFamily = 'default',
+    isLocalCss = false
   } = {}) {
     if (files === undefined || !Array.isArray(files)) {
       throw new Error(`\`files\` must be an array, got ${typeof files}.`);
@@ -18,6 +19,7 @@ module.exports = class IconMaker {
     }
     this._fontFamily = fontFamily;
     this._files = files;
+    this._isLocalCss = isLocalCss;
     this._svgs = [];
   }
   addSvg(svgPath, fontFamily = 'default') {
@@ -29,6 +31,7 @@ module.exports = class IconMaker {
     }
 
     const files = this._files;
+    const isLocalCss = this._isLocalCss;
     const svgPaths = this._svgs;
     const fontFamily = this._fontFamily;
 
@@ -54,7 +57,7 @@ module.exports = class IconMaker {
       }
       cb(undefined, fontFiles.reduce((obj, fontFile) => {
         if (path.extname(fontFile.path) === '.css') {
-          const cssContents = replaceCssContents(fontFile.contents.toString(), files);
+          const cssContents = replaceCssContents(fontFile.contents.toString(), files, isLocalCss);
 
           return Object.assign(obj, {
             css: cssContents

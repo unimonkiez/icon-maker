@@ -1,4 +1,4 @@
-module.exports = (cssContents, fileExtensions) => {
+module.exports = (cssContents, fileExtensions, isLocalCss) => {
   const fileExtensionsRegexp = new RegExp('(' + fileExtensions.map(file => `(\\.${file})`).join('|') + ')', 'g');
 
   return cssContents
@@ -17,5 +17,6 @@ module.exports = (cssContents, fileExtensions) => {
       return '';
     }
   }) // Filter out urls from fontFamily's src
-  .replace(/\[class\^="(.*)-"\],\n\[class\*=" (.*)-"\]:after/g, (_, w) => `.${w}`); // Change class finder to another base class
+  .replace(/\[class\^="(.*)-"\],\n\[class\*=" (.*)-"\]:after/g, (_, w) => `.${w}`)
+  .replace(isLocalCss ? /(\..*?){/g : '', isLocalCss ? ((_, w) => `:local(${w.trim()}) {`) : ''); // Change class finder to another base class
 };
