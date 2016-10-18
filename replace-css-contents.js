@@ -18,5 +18,6 @@ module.exports = (cssContents, fileExtensions, isLocalCss) => {
     }
   }) // Filter out urls from fontFamily's src
   .replace(/\[class\^="(.*)-"\],\n\[class\*=" (.*)-"\]:after/g, (_, w) => `.${w}`)
+  .replace(/font\-family:(.*?);/g, (_, w) => `font-family: "${w.trim().replace(/'|"/g, '')}";`)
   .replace(isLocalCss ? /(\..*?){/g : '', isLocalCss ? ((_, w) => `:local(${w.trim()}) {`) : ''); // Change class finder to another base class
 };
