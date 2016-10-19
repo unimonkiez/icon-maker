@@ -5,7 +5,7 @@ const replaceCssContents = require('./replace-css-contents');
 module.exports = class IconMaker {
   constructor({
     files = ['ttf', 'woff', 'eot', 'svg'],
-    fontFamily = 'default',
+    fontFamily = 'icon-maker',
     isLocalCss = false
   } = {}) {
     if (files === undefined || !Array.isArray(files)) {
