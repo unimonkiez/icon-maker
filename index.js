@@ -1,5 +1,6 @@
 const path = require('path');
-const Fontmin = require('fontmin');
+const webfontsGenerator = require('webfonts-generator');
+const Vinyl = require('vinyl');
 const replaceCssContents = require('./replace-css-contents');
 
 module.exports = class IconMaker {
@@ -14,15 +15,12 @@ module.exports = class IconMaker {
     if (files.some(file => ['ttf', 'eot', 'woff', 'svg'].indexOf(file) === -1)) {
       throw new Error('`files` must contain only `ttf`, `eot`, `woff` and `svg`.');
     }
-    if (files.indexOf('ttf') === -1) {
-      throw new Error('`files` must contain `ttf`.');
-    }
     this._fontFamily = fontFamily;
     this._files = files;
     this._isLocalCss = isLocalCss;
     this._svgs = [];
   }
-  addSvg(svgPath, fontFamily = 'default') {
+  addSvg(svgPath) {
     this._svgs.push(svgPath);
   }
   run(cb) {
@@ -35,40 +33,36 @@ module.exports = class IconMaker {
     const svgPaths = this._svgs;
     const fontFamily = this._fontFamily;
 
-    let fontmin = new Fontmin().src(svgPaths).use(Fontmin.svgs2ttf(fontFamily));
-    if (files.indexOf('eot') !== -1) {
-      fontmin = fontmin.use(Fontmin.ttf2eot({ fontFamily }));
-    }
-    if (files.indexOf('woff') !== -1) {
-      fontmin = fontmin.use(Fontmin.ttf2woff({ fontFamily }));
-    }
-    if (files.indexOf('svg') !== -1) {
-      fontmin = fontmin.use(Fontmin.ttf2svg({ fontFamily }));
-    }
-    fontmin.use(Fontmin.css({
-      fontFamily,
-      iconPrefix: fontFamily,
-      glyph: true
-    }));
-
-    fontmin.run((err, fontFiles) => {
+    webfontsGenerator({
+      files: svgPaths,
+      types: files,
+      fontName: fontFamily,
+      writeFiles: false,
+      dest: 'build', // Required but doesn't get used
+      fontHeight: 1000,
+      templateOptions: {
+        classPrefix: `${fontFamily}-`,
+        baseClass: fontFamily
+      }
+    }, (err, result) => {
       if (err) {
         cb(err);
       }
-      cb(undefined, fontFiles.reduce((obj, fontFile) => {
-        if (path.extname(fontFile.path) === '.css') {
-          const cssContents = replaceCssContents(fontFile.contents.toString(), files, isLocalCss);
+      let css = result.generateCss(files.reduce((obj, file) => Object.assign(obj, {
+        [file]: `./${fontFamily}.${file}`
+      }),{}));
+      css = replaceCssContents(css, isLocalCss);
 
-          return Object.assign(obj, {
-            css: cssContents
-          });
-        } else {
-          return Object.assign(obj, {
-            fontFiles: (obj.fontFiles || [])
-            .concat(fontFile)
-          });
-        }
-      }, { fontFamily }));
+      cb(undefined, {
+        fontFamily,
+        fontFiles: files.map(file => new Vinyl({
+          cwd: '/',
+          base: '/',
+          path: `/${fontFamily}.${file}`,
+          contents: new Buffer(result[file])
+        })),
+        css
+      });
     });
   }
 };
